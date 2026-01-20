@@ -2,35 +2,57 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Government Infobox</title>
+<title>Government Infobox Generator</title>
 
 <style>
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: #f2f2f2;
-  padding: 30px;
+  padding: 20px;
+  display: flex;
+  gap: 30px;
+}
+
+.panel {
+  width: 420px;
+  background: #fff;
+  border: 1px solid #aaa;
+  padding: 15px;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+label {
+  font-size: 13px;
+  display: block;
+  margin-top: 8px;
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.party {
+  border-top: 1px solid #ddd;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
 }
 
 .infobox {
   width: 420px;
-  background: #ffffff;
+  background: #fff;
   border: 1px solid #999;
   padding: 15px;
-}
-
-.infobox h1 {
-  font-size: 20px;
-  margin: 0 0 10px 0;
-}
-
-.infobox h2 {
-  font-size: 16px;
-  margin: 18px 0 6px 0;
-}
-
-.meta div {
-  font-size: 14px;
-  margin-bottom: 4px;
 }
 
 .majority-bar-container {
@@ -45,27 +67,22 @@ body {
   height: 100%;
 }
 
-.majority-segment {
-  height: 100%;
-}
-
 .majority-line {
   position: absolute;
   top: -4px;
   bottom: -4px;
   width: 2px;
-  background: #000;
+  background: black;
 }
 
 .legend {
-  margin-top: 10px;
   font-size: 13px;
+  margin-top: 8px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  margin-bottom: 4px;
 }
 
 .legend-color {
@@ -78,107 +95,137 @@ body {
 
 <body>
 
+<!-- ===================== -->
+<!-- EINGABEPANEL -->
+<!-- ===================== -->
+<div class="panel">
+  <h2>Eingaben</h2>
+
+  <label>Regierungsname</label>
+  <input id="govName" value="Schwarz-Gelbe Koalition">
+
+  <label>Regierungschef</label>
+  <input id="govLeader" value="Bundeskanzler X">
+
+  <label>Parlament</label>
+  <input id="parliamentName" value="Deutscher Bundestag">
+
+  <label>Sitze gesamt</label>
+  <input id="totalSeats" type="number" value="630">
+
+  <label>Mehrheitsschwelle</label>
+  <input id="majoritySeats" type="number" value="316">
+
+  <div id="parties"></div>
+
+  <button onclick="addParty()">➕ Partei hinzufügen</button>
+  <button onclick="render()">🔄 Infobox aktualisieren</button>
+</div>
+
+<!-- ===================== -->
+<!-- INFOBOX -->
+<!-- ===================== -->
 <div class="infobox">
-  <h1 id="gov-name"></h1>
+  <h2 id="outName"></h2>
+  <div><strong>Regierungschef:</strong> <span id="outLeader"></span></div>
+  <div><strong>Parlament:</strong> <span id="outParliament"></span></div>
 
-  <div class="meta">
-    <div><strong>Parlament:</strong> <span id="parliament-name"></span></div>
-    <div><strong>Sitze gesamt:</strong> <span id="seats-total"></span></div>
-    <div><strong>Mehrheit:</strong> <span id="majority"></span></div>
-  </div>
-
-  <h2>Koalitionsmehrheit</h2>
+  <h3>Koalitionsmehrheit</h3>
   <div class="majority-bar-container">
-    <div class="majority-bar" id="majority-bar"></div>
-    <div class="majority-line" id="majority-line"></div>
+    <div class="majority-bar" id="bar"></div>
+    <div class="majority-line" id="line"></div>
   </div>
 
   <div class="legend" id="legend"></div>
 </div>
 
 <script>
-// =====================
-// REGIERUNGSDATEN
-// =====================
-const government = {
-  name: "Schwarz-Gelbe Koalition (Beispiel)",
-  parliament: {
-    name: "Deutscher Bundestag",
-    seatsTotal: 630,
-    majority: 316
-  },
-  parties: [
-    { name: "CDU/CSU", seats: 283, color: "#000000", coalition: true },
-    { name: "FDP", seats: 44, color: "#ffed00", coalition: true },
-    { name: "SPD", seats: 206, color: "#e3000f", coalition: false },
-    { name: "Grüne", seats: 118, color: "#1aa037", coalition: false }
-  ]
-};
+let partyCount = 0;
 
-// =====================
-// RENDER-LOGIK
-// =====================
-const totalSeats = government.parliament.seatsTotal;
-const majoritySeats = government.parliament.majority;
+function addParty(name="", seats=0, color="#cccccc", coalition=false) {
+  const div = document.createElement("div");
+  div.className = "party";
 
-// Header
-document.getElementById("gov-name").textContent = government.name;
-document.getElementById("parliament-name").textContent = government.parliament.name;
-document.getElementById("seats-total").textContent = totalSeats;
-document.getElementById("majority").textContent = majoritySeats;
+  div.innerHTML = `
+    <label>Partei</label>
+    <input class="p-name" value="${name}">
 
-// Elemente
-const bar = document.getElementById("majority-bar");
-const legend = document.getElementById("legend");
+    <label>Sitze</label>
+    <input class="p-seats" type="number" value="${seats}">
 
-// Koalitionsparteien (größte zuerst)
-const coalitionParties = government.parties
-  .filter(p => p.coalition)
-  .sort((a, b) => b.seats - a.seats);
+    <label>Farbe</label>
+    <input class="p-color" type="color" value="${color}">
 
-// Balkensegmente
-coalitionParties.forEach(party => {
-  const widthPercent = (party.seats / totalSeats) * 100;
+    <label>
+      <input class="p-coalition" type="checkbox" ${coalition ? "checked" : ""}>
+      Teil der Koalition
+    </label>
+  `;
 
-  const segment = document.createElement("div");
-  segment.className = "majority-segment";
-  segment.style.width = widthPercent + "%";
-  segment.style.background = party.color;
-  segment.title = `${party.name}: ${party.seats} Sitze`;
+  document.getElementById("parties").appendChild(div);
+  partyCount++;
+}
 
-  bar.appendChild(segment);
+function render() {
+  const totalSeats = Number(document.getElementById("totalSeats").value);
+  const majoritySeats = Number(document.getElementById("majoritySeats").value);
 
-  // Legende
-  const item = document.createElement("div");
-  item.className = "legend-item";
+  document.getElementById("outName").textContent =
+    document.getElementById("govName").value;
+  document.getElementById("outLeader").textContent =
+    document.getElementById("govLeader").value;
+  document.getElementById("outParliament").textContent =
+    document.getElementById("parliamentName").value;
 
-  const colorBox = document.createElement("div");
-  colorBox.className = "legend-color";
-  colorBox.style.background = party.color;
+  const bar = document.getElementById("bar");
+  const legend = document.getElementById("legend");
+  bar.innerHTML = "";
+  legend.innerHTML = "";
 
-  const label = document.createElement("span");
-  label.textContent = `${party.name} – ${party.seats} Sitze`;
+  const parties = [...document.querySelectorAll(".party")].map(p => ({
+    name: p.querySelector(".p-name").value,
+    seats: Number(p.querySelector(".p-seats").value),
+    color: p.querySelector(".p-color").value,
+    coalition: p.querySelector(".p-coalition").checked
+  })).filter(p => p.coalition);
 
-  item.appendChild(colorBox);
-  item.appendChild(label);
-  legend.appendChild(item);
-});
+  parties.sort((a,b) => b.seats - a.seats);
 
-// Mehrheitsschwelle
-const majorityLine = document.getElementById("majority-line");
-majorityLine.style.left = (majoritySeats / totalSeats) * 100 + "%";
+  let coalitionSeats = 0;
 
-// Ergebnis
-const coalitionSeats = coalitionParties.reduce((sum, p) => sum + p.seats, 0);
+  parties.forEach(p => {
+    coalitionSeats += p.seats;
+    const seg = document.createElement("div");
+    seg.style.width = (p.seats / totalSeats * 100) + "%";
+    seg.style.background = p.color;
+    bar.appendChild(seg);
 
-const result = document.createElement("div");
-result.style.marginTop = "6px";
-result.innerHTML =
-  coalitionSeats >= majoritySeats
-    ? `✅ Mehrheit mit <strong>${coalitionSeats}</strong> Sitzen`
-    : `❌ Keine Mehrheit (<strong>${coalitionSeats}</strong> Sitze)`;
+    const item = document.createElement("div");
+    item.className = "legend-item";
+    item.innerHTML = `
+      <div class="legend-color" style="background:${p.color}"></div>
+      ${p.name} – ${p.seats} Sitze
+    `;
+    legend.appendChild(item);
+  });
 
-legend.appendChild(result);
+  document.getElementById("line").style.left =
+    (majoritySeats / totalSeats * 100) + "%";
+
+  const res = document.createElement("div");
+  res.innerHTML =
+    coalitionSeats >= majoritySeats
+      ? `✅ Mehrheit (${coalitionSeats} Sitze)`
+      : `❌ Keine Mehrheit (${coalitionSeats} Sitze)`;
+  legend.appendChild(res);
+}
+
+// Startwerte
+addParty("CDU/CSU", 283, "#000000", true);
+addParty("FDP", 44, "#ffed00", true);
+addParty("SPD", 206, "#e3000f", false);
+addParty("Grüne", 118, "#1aa037", false);
+render();
 </script>
 
 </body>
