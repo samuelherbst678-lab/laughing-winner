@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Government Infobox</title>
+
+<style>
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f2f2f2;
+  padding: 30px;
+}
+
+.infobox {
+  width: 420px;
+  background: #ffffff;
+  border: 1px solid #999;
+  padding: 15px;
+}
+
+.infobox h1 {
+  font-size: 20px;
+  margin: 0 0 10px 0;
+}
+
+.infobox h2 {
+  font-size: 16px;
+  margin: 18px 0 6px 0;
+}
+
+.meta div {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.majority-bar-container {
+  position: relative;
+  height: 26px;
+  background: #e0e0e0;
+  border: 1px solid #888;
+}
+
+.majority-bar {
+  display: flex;
+  height: 100%;
+}
+
+.majority-segment {
+  height: 100%;
+}
+
+.majority-line {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: #000;
+}
+
+.legend {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="infobox">
+  <h1 id="gov-name"></h1>
+
+  <div class="meta">
+    <div><strong>Parlament:</strong> <span id="parliament-name"></span></div>
+    <div><strong>Sitze gesamt:</strong> <span id="seats-total"></span></div>
+    <div><strong>Mehrheit:</strong> <span id="majority"></span></div>
+  </div>
+
+  <h2>Koalitionsmehrheit</h2>
+  <div class="majority-bar-container">
+    <div class="majority-bar" id="majority-bar"></div>
+    <div class="majority-line" id="majority-line"></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+// =====================
+// REGIERUNGSDATEN
+// =====================
+const government = {
+  name: "Schwarz-Gelbe Koalition (Beispiel)",
+  parliament: {
+    name: "Deutscher Bundestag",
+    seatsTotal: 630,
+    majority: 316
+  },
+  parties: [
+    { name: "CDU/CSU", seats: 283, color: "#000000", coalition: true },
+    { name: "FDP", seats: 44, color: "#ffed00", coalition: true },
+    { name: "SPD", seats: 206, color: "#e3000f", coalition: false },
+    { name: "Grüne", seats: 118, color: "#1aa037", coalition: false }
+  ]
+};
+
+// =====================
+// RENDER-LOGIK
+// =====================
+const totalSeats = government.parliament.seatsTotal;
+const majoritySeats = government.parliament.majority;
+
+// Header
+document.getElementById("gov-name").textContent = government.name;
+document.getElementById("parliament-name").textContent = government.parliament.name;
+document.getElementById("seats-total").textContent = totalSeats;
+document.getElementById("majority").textContent = majoritySeats;
+
+// Elemente
+const bar = document.getElementById("majority-bar");
+const legend = document.getElementById("legend");
+
+// Koalitionsparteien (größte zuerst)
+const coalitionParties = government.parties
+  .filter(p => p.coalition)
+  .sort((a, b) => b.seats - a.seats);
+
+// Balkensegmente
+coalitionParties.forEach(party => {
+  const widthPercent = (party.seats / totalSeats) * 100;
+
+  const segment = document.createElement("div");
+  segment.className = "majority-segment";
+  segment.style.width = widthPercent + "%";
+  segment.style.background = party.color;
+  segment.title = `${party.name}: ${party.seats} Sitze`;
+
+  bar.appendChild(segment);
+
+  // Legende
+  const item = document.createElement("div");
+  item.className = "legend-item";
+
+  const colorBox = document.createElement("div");
+  colorBox.className = "legend-color";
+  colorBox.style.background = party.color;
+
+  const label = document.createElement("span");
+  label.textContent = `${party.name} – ${party.seats} Sitze`;
+
+  item.appendChild(colorBox);
+  item.appendChild(label);
+  legend.appendChild(item);
+});
+
+// Mehrheitsschwelle
+const majorityLine = document.getElementById("majority-line");
+majorityLine.style.left = (majoritySeats / totalSeats) * 100 + "%";
+
+// Ergebnis
+const coalitionSeats = coalitionParties.reduce((sum, p) => sum + p.seats, 0);
+
+const result = document.createElement("div");
+result.style.marginTop = "6px";
+result.innerHTML =
+  coalitionSeats >= majoritySeats
+    ? `✅ Mehrheit mit <strong>${coalitionSeats}</strong> Sitzen`
+    : `❌ Keine Mehrheit (<strong>${coalitionSeats}</strong> Sitze)`;
+
+legend.appendChild(result);
+</script>
+
+</body>
+</html>
